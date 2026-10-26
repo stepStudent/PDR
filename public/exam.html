@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Іспит ПДР — Проходження тесту</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/exam.css">
+</head>
+<body>
+
+  <!-- Top Navigation & Candidate State -->
+  <header class="navbar">
+    <a href="/user" class="brand" onclick="return confirmExit(event)">
+      <div class="brand-icon">🚦</div>
+      <div>
+        <div class="brand-title">ТЕОРЕТИЧНИЙ ІСПИТ ПДР</div>
+        <div class="brand-subtitle">Головний сервісний центр МВС України</div>
+      </div>
+    </a>
+    
+    <div class="nav-actions">
+      <span class="badge badge-locked">🔒 Протокол формується онлайн</span>
+      <button class="btn btn-danger btn-sm" onclick="promptFinishExam()">Завершити іспит 🏁</button>
+    </div>
+  </header>
+
+  <main class="exam-container" id="exam-main-container">
+    
+    <!-- Active Exam Interface -->
+    <div id="active-exam-view">
+      
+      <!-- Top Stats Bar -->
+      <div class="exam-header">
+        <div class="candidate-info">
+          <div class="candidate-avatar" id="avatar-initials">К</div>
+          <div>
+            <div class="candidate-name" id="exam-student-name">Завантаження...</div>
+            <div class="candidate-group" id="exam-student-group">Група...</div>
+          </div>
+        </div>
+
+        <!-- 20:00 Countdown Timer -->
+        <div class="exam-timer-box" id="exam-timer-box">
+          <span class="timer-icon">⏱️</span>
+          <div>
+            <div style="font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase;">Залишилось часу</div>
+            <div class="timer-digits" id="timer-display">20:00</div>
+          </div>
+        </div>
+
+        <div class="exam-progress-stats">
+          <div class="stat-pill">
+            Відповіли: <strong id="stat-answered">0</strong> / 20
+          </div>
+          <div class="stat-pill">
+            Залишилось: <strong id="stat-remaining">20</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question Number Buttons Navigator -->
+      <div class="qgrid-container">
+        <div class="qgrid-header">
+          <span>Навігація по 20 екзаменаційних питаннях:</span>
+          <span style="font-size: 0.75rem; color: var(--text-dim);">Клацніть номер для швидкого переходу</span>
+        </div>
+        <div class="qgrid" id="question-nav-grid">
+          <!-- 1 to 20 buttons generated dynamically -->
+        </div>
+      </div>
+
+      <!-- Question Card -->
+      <div class="question-card" id="question-card">
+        <div class="question-top">
+          <span class="question-section-badge" id="q-section-badge">РОЗДІЛ</span>
+          <span style="font-weight: 700; color: var(--text-muted); font-size: 0.9375rem;" id="q-number-indicator">
+            Питання 1 з 20
+          </span>
+        </div>
+
+        <div class="question-body" id="q-body-container">
+          <!-- Left side: Question Text & Options -->
+          <div class="question-content">
+            <h2 class="question-text" id="q-text">Завантаження питання...</h2>
+            <div class="options-list" id="q-options-container">
+              <!-- Options rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Right side: Question Image (if present) -->
+          <div id="q-image-container" style="display: none;">
+            <div class="question-image-box" onclick="zoomImage()">
+              <img id="q-image" src="" alt="Ілюстрація ситуації на дорозі">
+              <div class="image-zoom-hint">🔍 Збільшити</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls / Actions -->
+        <div class="exam-controls">
+          <button class="btn btn-secondary" id="btn-prev-q" onclick="goToPrevQuestion()">
+            ← Попереднє
+          </button>
+          
+          <div class="nav-buttons">
+            <button class="btn btn-primary" id="btn-next-q" onclick="goToNextQuestion()">
+              Наступне питання →
+            </button>
+            <button class="btn btn-success" onclick="promptFinishExam()">
+              Завершити іспит 🏁
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Final Result Screen (Hidden until submission) -->
+    <div id="result-view" style="display: none;" class="result-container">
+      <div class="result-card-banner" id="result-banner">
+        <div class="result-icon-circle" id="result-icon">✓</div>
+        <h1 class="result-verdict" id="result-verdict-title">ІСПИТ СКЛАДЕНО!</h1>
+        <p class="result-desc" id="result-verdict-desc">
+          Вітаємо! Ви успішно склали фінальний теоретичний іспит з Правил дорожнього руху України.
+        </p>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-val" id="metric-score" style="color: #34d399;">19 / 20</div>
+            <div class="metric-label">Правильних відповідей</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" id="metric-mistakes" style="color: #f87171;">1</div>
+            <div class="metric-label">Помилок (дозволено до 2)</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" id="metric-duration" style="color: #38bdf8;">12:45</div>
+            <div class="metric-label">Витрачений час</div>
+          </div>
+        </div>
+
+        <!-- Immutability Proof Banner -->
+        <div class="immutability-seal">
+          <div class="seal-icon">🔒</div>
+          <div class="seal-text" style="text-align: left;">
+            <h4>
+              Офіційний протокол зафіксовано в базі даних
+              <span class="badge badge-locked">ЗАХИЩЕНО ВІД ЗМІН</span>
+            </h4>
+            <div style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+              Дані захищені від повторного редагування спеціальними тригерами СУБД та криптографічним хешем.
+            </div>
+            <div class="seal-hash" id="metric-hash">
+              SHA-256: ----------------------------------------------------------------
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <a href="/user" class="btn btn-primary btn-lg">
+            Повернутись до кабінету 👤
+          </a>
+          <button class="btn btn-secondary btn-lg" onclick="scrollToReview()">
+            Переглянути протокол відповідей 📋
+          </button>
+        </div>
+      </div>
+
+      <!-- Full Answers Review Section -->
+      <section id="result-review-section" class="card" style="margin-top: 2rem;">
+        <div class="review-header">
+          <div>
+            <h2>Детальний розбір усіх 20 питань</h2>
+            <p style="color: var(--text-muted); font-size: 0.875rem;">
+              Ознайомтесь з кожною обраною вами відповіддю, правильними варіантами та офіційними поясненнями
+            </p>
+          </div>
+          <span class="badge badge-locked">🔒 Офіційний протокол</span>
+        </div>
+        <div id="answers-review-container">
+          <!-- Injected dynamically -->
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Submit Confirmation Modal -->
+  <div class="modal-backdrop" id="finish-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Підтвердження завершення іспиту</div>
+        <button class="modal-close" onclick="closeFinishModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 1.05rem; margin-bottom: 1rem;" id="finish-modal-text">
+          Ви впевнені, що бажаєте достроково завершити іспит?
+        </p>
+        <div id="unanswered-warning" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); padding: 0.875rem; border-radius: var(--radius-md); color: #fbbf24; font-size: 0.875rem; margin-bottom: 1rem;">
+          ⚠️ Увага! У вас залишились невідповідані питання. Усі питання без відповіді будуть зараховані як помилкові!
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.875rem;">
+          Після завершення ваші відповіді будуть надіслані на перевірку і остаточно збережені в базі даних без можливості редагування.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeFinishModal()">Продовжити іспит</button>
+        <button class="btn btn-danger" onclick="submitExamNow()">Підтвердити та завершити</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Zoom Modal -->
+  <div class="modal-backdrop" id="image-modal" onclick="closeImageModal()">
+    <div style="max-width: 90vw; max-height: 90vh;">
+      <img id="zoomed-image" src="" alt="Збільшена ілюстрація" style="max-width: 100%; max-height: 85vh; border-radius: var(--radius-lg); border: 2px solid var(--border); box-shadow: var(--shadow-lg);">
+    </div>
+  </div>
+
+  <!-- Toast Notification Center -->
+  <div id="toast-container"></div>
+
+  <script src="/js/exam.js"></script>
+</body>
+</html>

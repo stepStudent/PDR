@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Панель адміністратора — Екзамен ПДР України</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/exam.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <!-- Admin Navigation Bar -->
+  <header class="navbar">
+    <a href="/admin" class="brand">
+      <div class="brand-icon">🛡️</div>
+      <div>
+        <div class="brand-title">АДМІНІСТРАТОР ПДР</div>
+        <div class="brand-subtitle">Панель екзаменаційної комісії</div>
+      </div>
+    </a>
+
+    <div class="nav-actions">
+      <!-- Change Password Button (Prominently required by user prompt!) -->
+      <button class="btn btn-secondary btn-sm" onclick="openChangePasswordModal()" id="btn-change-pass">
+        🔑 Змінити пароль
+      </button>
+      <button class="btn btn-outline btn-sm" onclick="handleLogout()">
+        Вийти 🚪
+      </button>
+    </div>
+  </header>
+
+  <main class="admin-layout">
+
+    <!-- Navigation Tabs -->
+    <div class="admin-tabs" role="tablist">
+      <button class="tab-btn active" id="tab-btn-results" onclick="switchAdminTab('results')">
+        📋 Усі результати іспитів
+      </button>
+      <button class="tab-btn" id="tab-btn-groups" onclick="switchAdminTab('groups')">
+        👥 Керування групами та учнями
+      </button>
+      <button class="tab-btn" id="tab-btn-stats" onclick="switchAdminTab('stats')">
+        📊 Статистика та аналітика
+      </button>
+    </div>
+
+    <!-- =====================================================================
+         TAB 1: ALL EXAM RESULTS (Protocols)
+         ===================================================================== -->
+    <section id="section-results">
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h2>Протоколи складання іспитів усіх користувачів</h2>
+            <p style="color: var(--text-muted); font-size: 0.875rem;">
+              Офіційні результати всіх студентів із захистом від редагування та деталізацією відповідей
+            </p>
+          </div>
+          <span class="badge badge-locked">🔒 Дані незмінні в базі даних</span>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div class="toolbar">
+          <div class="filter-group">
+            <select id="filter-group" class="form-control" style="width: auto; min-width: 200px;" onchange="loadAllResults()">
+              <option value="all">Усі навчальні групи</option>
+            </select>
+
+            <select id="filter-status" class="form-control" style="width: auto; min-width: 160px;" onchange="loadAllResults()">
+              <option value="all">Усі статуси</option>
+              <option value="passed">🟢 Складено (≤2 помилок)</option>
+              <option value="failed">🔴 Не складено (≥3 помилок)</option>
+            </select>
+
+            <input type="text" id="filter-search" class="form-control" placeholder="Пошук за прізвищем..." style="min-width: 220px;" oninput="debounce(loadAllResults, 300)()">
+          </div>
+
+          <div>
+            <button class="btn btn-secondary btn-sm" onclick="loadAllResults()">
+              🔄 Оновити
+            </button>
+          </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Студент</th>
+                <th>Група</th>
+                <th>Результат</th>
+                <th>Помилки</th>
+                <th>Час</th>
+                <th>Статус</th>
+                <th>Дата та час</th>
+                <th>Цілісність</th>
+                <th>Дії</th>
+              </tr>
+            </thead>
+            <tbody id="results-table-body">
+              <tr>
+                <td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                  Завантаження протоколів...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 2: GROUPS & STUDENTS MANAGEMENT
+         ===================================================================== -->
+    <section id="section-groups" style="display: none;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2>Навчальні групи та кандидати</h2>
+          <p style="color: var(--text-muted); font-size: 0.875rem;">
+            Створюйте групи та генеруйте паролі учням для складання іспиту
+          </p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateGroupModal()">
+          + Створити нову групу
+        </button>
+      </div>
+
+      <!-- Groups Cards Grid -->
+      <div class="groups-grid" id="groups-cards-container">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Selected Group Students Details Container -->
+      <div id="group-students-section" class="card" style="margin-top: 2rem; display: none;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h3 id="current-group-title">Студенти групи</h3>
+            <p style="color: var(--text-muted); font-size: 0.875rem;" id="current-group-subtitle">
+              Список кандидатів з їхніми паролями доступу
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button class="btn btn-outline btn-sm" onclick="printGroupCredentials()">
+              🖨️ Друк карток доступу
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="openBatchAddModal()">
+              👥 Пакетне додавання
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openAddStudentModal()">
+              + Додати учня
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Прізвище</th>
+                <th>Пароль для входу</th>
+                <th>Спроб складання</th>
+                <th>Найкращий бал</th>
+                <th>Статус іспиту</th>
+                <th>Дії</th>
+              </tr>
+            </thead>
+            <tbody id="group-students-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 3: ANALYTICS & STATS
+         ===================================================================== -->
+    <section id="section-stats" style="display: none;">
+      <div class="stats-grid" id="stats-kpi-container">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom: 1rem;">Останні складені іспити</h3>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Студент</th>
+                <th>Група</th>
+                <th>Результат</th>
+                <th>Статус</th>
+                <th>Дата</th>
+              </tr>
+            </thead>
+            <tbody id="recent-exams-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =====================================================================
+       MODALS
+       ===================================================================== -->
+
+  <!-- Change Password Modal -->
+  <div class="modal-backdrop" id="change-pass-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Зміна пароля адміністратора</div>
+        <button class="modal-close" onclick="closeChangePasswordModal()">✕</button>
+      </div>
+      <form onsubmit="handleChangePassword(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="admin-curr-pass">Поточний пароль</label>
+            <input type="password" id="admin-curr-pass" class="form-control" required placeholder="Введіть поточний пароль (за замовчуванням admin)">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="admin-new-pass">Новий пароль</label>
+            <input type="password" id="admin-new-pass" class="form-control" required minlength="4" placeholder="Введіть новий пароль">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="admin-confirm-pass">Підтвердження нового пароля</label>
+            <input type="password" id="admin-confirm-pass" class="form-control" required minlength="4" placeholder="Повторіть новий пароль">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">Скасувати</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-new-pass">Зберегти пароль</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create Group Modal -->
+  <div class="modal-backdrop" id="create-group-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Створення навчальної групи</div>
+        <button class="modal-close" onclick="closeCreateGroupModal()">✕</button>
+      </div>
+      <form onsubmit="handleCreateGroup(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="new-group-name">Назва групи</label>
+            <input type="text" id="new-group-name" class="form-control" placeholder="Наприклад: Група 25-В (Категорія B)" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-group-desc">Опис / Примітки</label>
+            <input type="text" id="new-group-desc" class="form-control" placeholder="Наприклад: Викладач Іванов, денний курс">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeCreateGroupModal()">Скасувати</button>
+          <button type="submit" class="btn btn-primary">Створити групу</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Student Modal -->
+  <div class="modal-backdrop" id="add-student-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Додати учня до групи</div>
+        <button class="modal-close" onclick="closeAddStudentModal()">✕</button>
+      </div>
+      <form onsubmit="handleAddStudent(event)">
+        <div class="modal-body">
+          <input type="hidden" id="student-group-id">
+          <div class="form-group">
+            <label class="form-label" for="student-surname">Прізвище учня</label>
+            <input type="text" id="student-surname" class="form-control" placeholder="Наприклад: Даниленко" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="student-password">Пароль (залиште порожнім для автогенерації)</label>
+            <input type="text" id="student-password" class="form-control" placeholder="Автоматично згенерувати пароль">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAddStudentModal()">Скасувати</button>
+          <button type="submit" class="btn btn-primary">Зберегти учня</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Batch Add Students Modal -->
+  <div class="modal-backdrop" id="batch-add-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Пакетне додавання учнів</div>
+        <button class="modal-close" onclick="closeBatchAddModal()">✕</button>
+      </div>
+      <form onsubmit="handleBatchAdd(event)">
+        <div class="modal-body">
+          <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.75rem;">
+            Вставте список прізвищ (кожне з нового рядка або через кому). Паролі будуть згенеровані автоматично для кожного учня:
+          </p>
+          <div class="form-group">
+            <textarea id="batch-surnames" class="form-control" rows="8" placeholder="Коваленко&#10;Сидоренко&#10;Іванов&#10;Петренко" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeBatchAddModal()">Скасувати</button>
+          <button type="submit" class="btn btn-primary">Створити акаунти учнів</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Detailed Protocol Modal -->
+  <div class="modal-backdrop" id="protocol-modal">
+    <div class="modal" style="max-width: 950px; max-height: 90vh;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="proto-modal-title">Детальний протокол іспиту</div>
+          <div style="font-size: 0.8125rem; color: var(--text-muted);" id="proto-modal-subtitle"></div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Друк протоколу</button>
+          <button class="modal-close" onclick="closeProtocolModal()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body" id="proto-modal-body">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="modal-footer">
+        <span class="badge badge-locked" id="proto-modal-seal">🔒 Захищений протокол</span>
+        <button class="btn btn-secondary" onclick="closeProtocolModal()">Закрити</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Printable Area for Student Access Cards -->
+  <div id="print-area" style="display: none;"></div>
+
+  <!-- Toast Notification Center -->
+  <div id="toast-container"></div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>
