@@ -222,3 +222,16 @@
     page-break-inside: avoid;
   }
 }
+
+/* Light Mode Overrides for Admin */
+[data-theme="light"] .tab-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .admin-tabs {
+  background: #ffffff;
+}
+
+[data-theme="light"] .group-card:hover {
+  box-shadow: 0 10px 25px -3px rgba(37, 99, 235, 0.1);
+}
